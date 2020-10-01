@@ -71,7 +71,7 @@ void addbox(std::string str, sf::Vector2f pos, std::string command) {
 }
 
 std::string get_full(std::string file) {
-	std::string full = std::string(getpwuid(getuid())->pw_dir) + "/.config/i3wm-taskbar/" + file;
+	std::string full = std::string(getpwuid(getuid())->pw_dir) + "/.config/i3-app-launcher/" + file;
 	if(std::fstream(full).good()) {
 		return full;
 	} else return file;

@@ -1,0 +1,38 @@
+first it will search file from ~/.config/i3wm-taskbar/
+you can give it full path if you like
+>font: font.otf
+>font_size: 15
+>width: 120
+
+>allow_commands: true
+>kill_if_no_focus: 1
+>hide_cursor: 1
+
+>height: 0
+>size_between: 2
+
+rgb color but you can use it like this too if you think r = x and g = y
+>offset_from00: "2,2,0"
+
+>box_width: 0
+>box_height: 17
+>only_outline: 0
+>start_at_mouse_pos: 1
+>start_pos_offset: "0,19,0"
+
+change colors here
+>box_focused: "0,98,102"
+>box_unfocused: "20,20,30"
+>text_focused: "200,180,150"
+>text_unfocused: "70,70,70"
+>background: "10,10,30"
+
+>programs [
+Firefox:firefox&,
+Discord&,
+VirtualBox:VirtualBox&,
+Flameshot:flameshot gui&,
+]
+
+
+
