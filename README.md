@@ -12,3 +12,10 @@ Default keybinds:
 - D/ENTER: run command
 
 - Q/ESC: quit
+
+
+you can add this to your i3 config if you want:
+
+```
+bindsym $mod+b exec "if ! ps -e | grep i3wm-taskbar ; then exec i3wm-taskbar ; fi"
+```
