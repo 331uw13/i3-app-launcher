@@ -29,7 +29,7 @@ change colors here
 
 >programs [
 Firefox:firefox&,
-Discord&,
+Discord:discord&,
 VirtualBox:VirtualBox&,
 Flameshot:flameshot gui&,
 ]
