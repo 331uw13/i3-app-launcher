@@ -19,5 +19,5 @@ Default keybinds:
 you can add this to your i3 config if you want:
 
 ```
-bindsym $mod+b exec "if ! ps -e | grep i3wm-taskbar ; then exec i3wm-taskbar ; fi"
+bindsym $mod+b exec "if ! ps -e | grep i3-app-launcher ; then exec i3-app-launcher ; fi"
 ```
