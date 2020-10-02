@@ -150,117 +150,105 @@ auto match_key(const sf::Keyboard::Key &key, const sf::Keyboard::Key &key2) -> b
     return (key == key2);
 }
 
-bool exit_when_done = false;
-int main(int argc, char **argv)
-{ 
-	for(int i = 0; i < argc; i++) {
-		std::cout << argv[i] << " ";
-		if(strcmp(argv[i], "exit") == 0) {
-			exit_when_done = true;
-		}
-	}
-	std::cout << '\n';
+int main(int /*argc*/, char** /*argv*/)
+{
+    globals.config.open_file(get_full("config").c_str());
+    std::cout << "creating window: " << globals.WIDTH << "x" << globals.HEIGHT << '\n';
+    load_config();
 
-	config.open_file(get_full("config").c_str());
-	std::cout << "creating window: " << WIDTH << "x" << HEIGHT << '\n'; 
-	load_config();
+    globals.box._text.setCharacterSize(globals.font_size);
+    globals.box._text.setFont(globals.font);
+    globals.box._text.setFillColor(globals.text_unfocused);
+    globals.box._rect.setSize(globals.box_size);
+    if(globals.only_outline) {
+        globals.box._rect.setOutlineThickness(2);
+        globals.box._rect.setOutlineColor(globals.box_unfocused);
+        globals.box._rect.setFillColor(sf::Color::Transparent);
+    } else {
+        globals.box._rect.setFillColor(globals.box_unfocused);
+    }
 
-	box._text.setCharacterSize(font_size);
-	box._text.setFont(font);
-	box._text.setFillColor(text_unfocused);
-	box._rect.setSize(box_size);
-	if(only_outline) {
-		box._rect.setOutlineThickness(2);
-		box._rect.setOutlineColor(box_unfocused);
-		box._rect.setFillColor(sf::Color::Transparent);
-	} else {
-		box._rect.setFillColor(box_unfocused);
-	}
-	
-	sf::Vector2f auto_pos = from_00;
-	for(int i = 0; i < box_str_array.size(); i++) {
-		// name, pos, command
-		size_t d = box_str_array[i].find(":");
-		addbox(box_str_array[i].substr(0, d), auto_pos, box_str_array[i].substr(d + 1, box_str_array[i].length()));
-		auto_pos.y += box_size.y + between;
-	}
-	//sf::Vector2f pos(from_00.x, from_00.y);
-	// Moved --> load_config()
-	/*for(int i = 0; i < 5; i++) {
-		addbox("test" + std::to_string(i), pos, "");
-		pos.y += box_size.y + between;
-	}*/
-	if(auto_window_height) HEIGHT = boxes[boxes.size() - 1]._rect.getPosition().y + box_size.y + 3;
-	boxes[0].focus();
+    sf::Vector2f auto_pos = globals.from_00;
+    for (const auto& str: globals.box_str_array) {
+        // name, pos, command
+        size_t d = str.find(":");
+        addbox(str.substr(0, d), auto_pos, str.substr(d + 1, str.length()));
+        auto_pos.y += globals.box_size.y + globals.between;
+    }
 
-	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "i3wm-taskbar", sf::Style::None);
-	window.setFramerateLimit(30);
-	window.setVerticalSyncEnabled(true);
-	window.clear(sf::Color(110, 20, 20));
-	window.setMouseCursorVisible(false);		
-	
-	if(start_at_mouse_pos) {	
-		sf::Mouse mouse;
-		sf::Vector2i targetpos = mouse.getPosition();
-		sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
-		targetpos = mouse.getPosition();
-		if(targetpos.y + HEIGHT > desktop.height) {
-			targetpos.y -= (targetpos.y + HEIGHT + start_pos_offset.y) - desktop.height;
-		}
-		targetpos += start_pos_offset;
-		window.setPosition(targetpos);
-	} else {
-		window.setPosition(start_pos_offset);	
-	}
-	
-	if(!font.loadFromFile(get_full(config.value<std::string>("font")))) {
-		error("please confirm that you have font in config file: " + get_full("config"));
-		return EXIT_FAILURE;
-	}
+    if (globals.auto_window_height) {
+        globals.HEIGHT = static_cast<unsigned int>(globals.boxes[globals.boxes.size() - 1]._rect.getPosition().y + globals.box_size.y + 3);
+    }
+    globals.boxes[0].focus();
 
-	while (window.isOpen()) {
+    sf::RenderWindow window(sf::VideoMode(globals.WIDTH, globals.HEIGHT), "i3wm-taskbar", sf::Style::None);
+    window.setFramerateLimit(30);
+    window.setVerticalSyncEnabled(true);
+    window.clear(sf::Color(110, 20, 20));
+    window.setMouseCursorVisible(false);
+
+    if(globals.start_at_mouse_pos) {
+        sf::Mouse mouse;
+        sf::Vector2i targetpos = mouse.getPosition();
+        sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+        targetpos = mouse.getPosition();
+        if((static_cast<unsigned int>(targetpos.y) + globals.HEIGHT) > desktop.height) {
+            targetpos.y -= (targetpos.y + static_cast<int>(globals.HEIGHT) + globals.start_pos_offset.y) - static_cast<int>(desktop.height);
+        }
+        targetpos += globals.start_pos_offset;
+        window.setPosition(targetpos);
+    } else {
+        window.setPosition(globals.start_pos_offset);
+    }
+
+    if(!globals.font.loadFromFile(get_full(globals.config.value<std::string>("font")))) {
+        error("please confirm that you have font in config file: " + get_full("config"));
+        return EXIT_FAILURE;
+    }
+
+    while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
-			if (kill_if_no_focus && event.type == sf::Event::LostFocus) {
-					std::cout << "lost focus\n";
-					std::cout << "quit!\n";
-					window.close();
-			}
+            if (globals.kill_if_no_focus && event.type == sf::Event::LostFocus) {
+                    std::cout << "lost focus\n";
+                    std::cout << "quit!\n";
+                    window.close();
+            }
             if (event.type == sf::Event::KeyPressed) {
-				sf::Keyboard::Key key = event.key.code;
-				if(match_key(key, sf::Keyboard::Q) || match_key(key, sf::Keyboard::Escape)) {
-					std::cout << "quit!\n";
-					window.close();
-				}
-				else if(match_key(key, sf::Keyboard::Up) || match_key(key, sf::Keyboard::W)) {
-					if(focused_box > 0 && focused_box != 0) {
-						focused_box--;
-						toggle_box();
-					}
-				}
-				else if(match_key(key, sf::Keyboard::Down) || match_key(key, sf::Keyboard::S)) {
-					if(focused_box < boxes.size() - 1 && focused_box != boxes.size()) {
-						focused_box++;
-						toggle_box();
-					}
-				}
-				else if(match_key(key, sf::Keyboard::Enter) || match_key(key, sf::Keyboard::D)) {
-					std::cout << "index: " << focused_box << " | command: " << boxes[focused_box]._command << '\n';
-					system(boxes[focused_box]._command.c_str());
-					std::cout << "quit!\n"; 
-					window.close();
-				}
-	    	}
-		}	
-        window.clear(background);
-		if(boxes.size() > 0) {
-			for(int i = 0; i < boxes.size(); i++) {
-				window.draw(boxes[i]._rect);
-				window.draw(boxes[i]._text);
-			}
-		}
-		window.display();
+                sf::Keyboard::Key key = event.key.code;
+                if(match_key(key, sf::Keyboard::Q) || match_key(key, sf::Keyboard::Escape)) {
+                    std::cout << "quit!\n";
+                    window.close();
+                }
+                else if(match_key(key, sf::Keyboard::Up) || match_key(key, sf::Keyboard::W)) {
+                    if(globals.focused_box > 0 && globals.focused_box != 0) {
+                        globals.focused_box--;
+                        toggle_box();
+                    }
+                }
+                else if(match_key(key, sf::Keyboard::Down) || match_key(key, sf::Keyboard::S)) {
+                    if(globals.focused_box < globals.boxes.size() - 1 && globals.focused_box != globals.boxes.size()) {
+                        globals.focused_box++;
+                        toggle_box();
+                    }
+                }
+                else if(match_key(key, sf::Keyboard::Enter) || match_key(key, sf::Keyboard::D)) {
+                    std::cout << "index: " << globals.focused_box << " | command: " << globals.boxes[globals.focused_box]._command << '\n';
+                    system(globals.boxes[globals.focused_box]._command.c_str());
+                    std::cout << "quit!\n";
+                    window.close();
+                }
+            }
+        }
+        window.clear(globals.background);
+        if(globals.boxes.size() > 0) {
+            for (const auto& box : globals.boxes) {
+                window.draw(box._rect);
+                window.draw(box._text);
+            }
+        }
+        window.display();
     }
 
     return 0;
