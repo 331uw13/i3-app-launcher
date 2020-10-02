@@ -11,27 +11,14 @@ void error(std::string str) {
 	std::cout << "\nError!\n\033[1;31m" << str << "\033[0m\n\n";
 }
 
-// Settings --------------------------------------
-sf::Font font;
-sf::Color box_focused(70, 10, 10);
-sf::Color box_unfocused(20, 20, 20);
-sf::Color text_focused(220, 220, 230);
-sf::Color text_unfocused(80, 80, 80);
-sf::Color background(10, 10, 10);
-int WIDTH = 200, HEIGHT = 400;
-int between = 2;
-sf::Vector2f from_00(5, 5);
-int font_size = 16;
-unsigned int focused_box = 0;
-bool only_outline = false;
-bool kill_if_no_focus = true;
-sf::Vector2f box_size(WIDTH - between - 3, 20);
-bool auto_window_height = false;
-bool start_at_mouse_pos = true;
-sf::Vector2i start_pos_offset(0, 0);
+void error(const std::string& str);
+void addbox(const std::string& str, const sf::Vector2f& pos, const std::string& command);
+[[nodiscard]] auto get_full(const std::string& file) -> std::string;
+[[nodiscard]] auto sf_color(const Config::color& color) -> sf::Color;
+void toggle_box();
+void load_config();
+auto match_key(const sf::Keyboard::Key& key, const sf::Keyboard::Key& key2) -> bool;
 
-Config config;
-// ------------------------------------------------
 
 class Box {
 public:
@@ -56,6 +43,28 @@ public:
 	}
 };
 
+static struct {
+// Settings --------------------------------------
+sf::Font font;
+sf::Color box_focused{70, 10, 10};
+sf::Color box_unfocused{20, 20, 20};
+sf::Color text_focused{220, 220, 230};
+sf::Color text_unfocused{80, 80, 80};
+sf::Color background{10, 10, 10};
+unsigned int WIDTH { 200 };
+unsigned int HEIGHT { 400 };
+unsigned int between { 2 };
+sf::Vector2f from_00{5, 5};
+unsigned int font_size { 16 };
+unsigned int focused_box { 0 };
+bool only_outline { false };
+bool kill_if_no_focus { true };
+sf::Vector2f box_size{static_cast<float>(WIDTH - between - 3), 20.0};
+bool auto_window_height { false };
+bool start_at_mouse_pos { true };
+sf::Vector2i start_pos_offset{0, 0};
+
+Config config{};
 Box box;
 std::vector<Box> boxes;
 std::vector<std::string> box_str_array;
@@ -77,18 +86,19 @@ std::string get_full(std::string file) {
 	} else return file;
 }
 
-unsigned int p_rect_indx = 0;
 void toggle_box() {
-	for(int i = 0; i < boxes.size(); i++) {
-		float y = boxes[focused_box]._text.getPosition().y;
-		if		(y < 0) 					boxes[i].move_down();
-		else if (y > HEIGHT - box_size.y) 	boxes[i].move_up();
-		boxes[p_rect_indx].unfocus();
-		boxes[focused_box].focus();
-		p_rect_indx = i;
-	}
+    static size_t p_rect_indx { 0 };
 
-	std::cout << "box " << focused_box << " got focus | " << boxes[focused_box]._command << '\n'; 
+    for(size_t i = 0; i < globals.boxes.size(); i++) {
+        float y = globals.boxes[globals.focused_box]._text.getPosition().y;
+        if		(y < 0) 					globals.boxes[i].move_down();
+        else if (y > globals.HEIGHT - globals.box_size.y) 	globals.boxes[i].move_up();
+        globals.boxes[p_rect_indx].unfocus();
+        globals.boxes[globals.focused_box].focus();
+        p_rect_indx = i;
+    }
+
+    std::cout << "box " << globals.focused_box << " got focus | " << globals.boxes[globals.focused_box]._command << '\n';
 }
 
 sf::Color sf_color(Config::color color) {
