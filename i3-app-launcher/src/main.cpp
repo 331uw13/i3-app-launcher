@@ -7,9 +7,6 @@
 #include <chrono>
 #include "config.hpp"
 
-void error(std::string str) {
-	std::cout << "\nError!\n\033[1;31m" << str << "\033[0m\n\n";
-}
 
 void error(const std::string& str);
 void addbox(const std::string& str, const sf::Vector2f& pos, const std::string& command);
@@ -22,25 +19,13 @@ auto match_key(const sf::Keyboard::Key& key, const sf::Keyboard::Key& key2) -> b
 
 class Box {
 public:
-	sf::Text _text;
-	sf::RectangleShape _rect;
-	std::string _command;
-	void focus() {
-		_text.setFillColor(text_focused);
-		only_outline ? _rect.setOutlineColor(box_focused) : _rect.setFillColor(box_focused);		
-	}
-	void unfocus() {
-		_text.setFillColor(text_unfocused);
-		only_outline ? _rect.setOutlineColor(box_unfocused) : _rect.setFillColor(box_unfocused);
-	}
-	void move_up() {
-		_text.move(0, -(box_size.y + between));
-		_rect.move(0, -(box_size.y + between));
-	}
-	void move_down() {
-		_text.move(0, box_size.y + between);
-		_rect.move(0, box_size.y + between);
-	}
+    sf::Text _text;
+    sf::RectangleShape _rect;
+    std::string _command;
+    void focus();
+    void unfocus();
+    void move_up();
+    void move_down();
 };
 
 static struct {
@@ -66,24 +51,49 @@ sf::Vector2i start_pos_offset{0, 0};
 
 Config config{};
 Box box;
-std::vector<Box> boxes;
-std::vector<std::string> box_str_array;
+std::vector<Box> boxes{};
+std::vector<std::string> box_str_array{};
 
-void addbox(std::string str, sf::Vector2f pos, std::string command) {
-	std::cout << "addbox(): " << str << ", " << command << " to " << pos.x << "," << pos.y << '\n';
-	box._text.setString(str);
-	box._text.setPosition(sf::Vector2f(pos.x + 5, pos.y + box._text.getGlobalBounds().height / 2 - 1));
-	box._rect.setPosition(pos);
-	box._command = command;
-	boxes.emplace_back(box);
-	std::cout << "size: " << boxes.size() << '\n';
+} globals;
+// ------------------------------------------------
+
+void Box::focus() {
+    _text.setFillColor(globals.text_focused);
+    globals.only_outline ? _rect.setOutlineColor(globals.box_focused) : _rect.setFillColor(globals.box_focused);
+}
+void Box::unfocus() {
+    _text.setFillColor(globals.text_unfocused);
+    globals.only_outline ? _rect.setOutlineColor(globals.box_unfocused) : _rect.setFillColor(globals.box_unfocused);
+}
+void Box::move_up() {
+    _text.move(0, -(globals.box_size.y + globals.between));
+    _rect.move(0, -(globals.box_size.y + globals.between));
+}
+void Box::move_down() {
+    _text.move(0, globals.box_size.y + globals.between);
+    _rect.move(0, globals.box_size.y + globals.between);
 }
 
-std::string get_full(std::string file) {
-	std::string full = std::string(getpwuid(getuid())->pw_dir) + "/.config/i3-app-launcher/" + file;
-	if(std::fstream(full).good()) {
-		return full;
-	} else return file;
+
+void error(const std::string& str) {
+    std::cout << "\nError!\n\033[1;31m" << str << "\033[0m\n\n";
+}
+
+void addbox(const std::string &str, const sf::Vector2f &pos, const std::string &command) {
+    std::cout << "addbox(): " << str << ", " << command << " to " << pos.x << "," << pos.y << '\n';
+    globals.box._text.setString(str);
+    globals.box._text.setPosition(sf::Vector2f(pos.x + 5, pos.y + globals.box._text.getGlobalBounds().height / 2 - 1));
+    globals.box._rect.setPosition(pos);
+    globals.box._command = command;
+    globals.boxes.emplace_back(globals.box);
+    std::cout << "size: " << globals.boxes.size() << '\n';
+}
+
+auto get_full(const std::string &file) -> std::string {
+    std::string full = std::string(getpwuid(getuid())->pw_dir) + "/.config/i3-app-launcher/" + file;
+    if(std::fstream(full).good()) {
+        return full;
+    } else return file;
 }
 
 void toggle_box() {
@@ -101,41 +111,44 @@ void toggle_box() {
     std::cout << "box " << globals.focused_box << " got focus | " << globals.boxes[globals.focused_box]._command << '\n';
 }
 
-sf::Color sf_color(Config::color color) {
-	return sf::Color(color.r, color.g, color.b);
+auto sf_color(const Config::color &color) -> sf::Color {
+    return sf::Color{static_cast<sf::Uint8>(color.r), static_cast<sf::Uint8>(color.g), static_cast<sf::Uint8>(color.b)};
 }
 
-void load_config() {	
-	font_size = config.value<int>("font_size");
-	WIDTH = config.value<int>("width");
-	HEIGHT = config.value<int>("height");
-	from_00.x = config.color_value("offset_from00").r;
-	from_00.y = config.color_value("offset_from00").g;	
-	box_size.x = config.value<int>("box_width");
-   	box_size.y = config.value<int>("box_height");	
-	start_pos_offset.x = config.color_value("start_pos_offset").r;
-	start_pos_offset.y = config.color_value("start_pos_offset").g;
-	start_at_mouse_pos = config.value<bool>("start_at_mouse_pos");	
-	kill_if_no_focus = config.value<bool>("kill_if_no_focus");
-	box_str_array = config.array("programs");
+void load_config() {
+    globals.font_size = globals.config.value<unsigned int>("font_size");
+    globals.WIDTH = globals.config.value<unsigned int>("width");
+    globals.HEIGHT = globals.config.value<unsigned int>("height");
+    globals.from_00.x = globals.config.color_value("offset_from00").r;
+    globals.from_00.y = globals.config.color_value("offset_from00").g;
+    globals.box_size.x = globals.config.value<int>("box_width");
+    globals.box_size.y = globals.config.value<int>("box_height");
+    globals.start_pos_offset.x = static_cast<int>(globals.config.color_value("start_pos_offset").r);
+    globals.start_pos_offset.y = static_cast<int>(globals.config.color_value("start_pos_offset").g);
+    globals.start_at_mouse_pos = globals.config.value<bool>("start_at_mouse_pos");
+    globals.kill_if_no_focus = globals.config.value<bool>("kill_if_no_focus");
+    globals.box_str_array = globals.config.array("programs");
 
-	box_focused = sf_color(config.color_value("box_focused"));
-	box_unfocused = sf_color(config.color_value("box_unfocused"));
-	text_focused = sf_color(config.color_value("text_focused"));
-	text_unfocused = sf_color(config.color_value("text_unfocused"));
-	background = sf_color(config.color_value("background"));
-	
-	if(HEIGHT <= 0) {
-		HEIGHT = box_size.y + from_00.y;
-		auto_window_height = true;
-	}
-	if(box_size.x <= 0) {
-		box_size.x = WIDTH - from_00.x * 2;
-	}
+    globals.box_focused = sf_color(globals.config.color_value("box_focused"));
+    globals.box_unfocused = sf_color(globals.config.color_value("box_unfocused"));
+    globals.text_focused = sf_color(globals.config.color_value("text_focused"));
+    globals.text_unfocused = sf_color(globals.config.color_value("text_unfocused"));
+    globals.background = sf_color(globals.config.color_value("background"));
+
+    if(globals.HEIGHT <= 0) {
+        globals.HEIGHT = static_cast<unsigned int>(globals.box_size.y + globals.from_00.y);
+        globals.auto_window_height = true;
+    }
+    if(globals.box_size.x <= 0) {
+        globals.box_size.x = globals.WIDTH - globals.from_00.x * 2;
+    }
 
 }
 
-bool match_key(sf::Keyboard::Key key, sf::Keyboard::Key key2) { return (key == key2); };
+auto match_key(const sf::Keyboard::Key &key, const sf::Keyboard::Key &key2) -> bool
+{
+    return (key == key2);
+}
 
 bool exit_when_done = false;
 int main(int argc, char **argv)
