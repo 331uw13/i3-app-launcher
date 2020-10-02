@@ -67,7 +67,6 @@ void addbox(std::string str, sf::Vector2f pos, std::string command) {
 	box._rect.setPosition(pos);
 	box._command = command;
 	boxes.emplace_back(box);
-	std::cout << "size: " << boxes.size() << '\n';
 }
 
 std::string get_full(std::string file) {
@@ -77,16 +76,15 @@ std::string get_full(std::string file) {
 	} else return file;
 }
 
-unsigned int p_rect_indx = 0;
 void toggle_box() {
-	for(int i = 0; i < boxes.size(); i++) {
-		float y = boxes[focused_box]._text.getPosition().y;
-		if		(y < 0) 					boxes[i].move_down();
-		else if (y > HEIGHT - box_size.y) 	boxes[i].move_up();
-		boxes[p_rect_indx].unfocus();
-		boxes[focused_box].focus();
-		p_rect_indx = i;
+	float focused_y = boxes[focused_box]._rect.getPosition().y;
+	std::cout << focused_y << '\n';
+	for(unsigned int i = 0; i < boxes.size(); i++) {
+		if(focused_y > HEIGHT - box_size.y) boxes[i].move_up();
+		else if(focused_y < 0) boxes[i].move_down();
+		boxes[i].unfocus();
 	}
+	boxes[focused_box].focus();
 
 	std::cout << "box " << focused_box << " got focus | " << boxes[focused_box]._command << '\n'; 
 }
@@ -118,29 +116,22 @@ void load_config() {
 	if(HEIGHT <= 0) {
 		HEIGHT = box_size.y + from_00.y;
 		auto_window_height = true;
+	} else {
+		float limit = (box_size.y + between) * 3 + from_00.y;
+		if(HEIGHT < limit) HEIGHT = limit;
 	}
+
 	if(box_size.x <= 0) {
 		box_size.x = WIDTH - from_00.x * 2;
 	}
-
 }
 
-bool match_key(sf::Keyboard::Key key, sf::Keyboard::Key key2) { return (key == key2); };
-
-bool exit_when_done = false;
 int main(int argc, char **argv)
-{ 
-	for(int i = 0; i < argc; i++) {
-		std::cout << argv[i] << " ";
-		if(strcmp(argv[i], "exit") == 0) {
-			exit_when_done = true;
-		}
-	}
-	std::cout << '\n';
-
+{   	
 	config.open_file(get_full("config").c_str());
-	std::cout << "creating window: " << WIDTH << "x" << HEIGHT << '\n'; 
 	load_config();
+	
+	std::cout << "creating window: " << WIDTH << "x" << HEIGHT << '\n'; 
 
 	box._text.setCharacterSize(font_size);
 	box._text.setFont(font);
@@ -155,25 +146,17 @@ int main(int argc, char **argv)
 	}
 	
 	sf::Vector2f auto_pos = from_00;
-	for(int i = 0; i < box_str_array.size(); i++) {
-		// name, pos, command
+	for(unsigned int i = 0; i < box_str_array.size(); i++) {
 		size_t d = box_str_array[i].find(":");
 		addbox(box_str_array[i].substr(0, d), auto_pos, box_str_array[i].substr(d + 1, box_str_array[i].length()));
 		auto_pos.y += box_size.y + between;
 	}
-	//sf::Vector2f pos(from_00.x, from_00.y);
-	// Moved --> load_config()
-	/*for(int i = 0; i < 5; i++) {
-		addbox("test" + std::to_string(i), pos, "");
-		pos.y += box_size.y + between;
-	}*/
 	if(auto_window_height) HEIGHT = boxes[boxes.size() - 1]._rect.getPosition().y + box_size.y + 3;
 	boxes[0].focus();
 
-	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "i3wm-taskbar", sf::Style::None);
+	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "i3wm-app-launcher", sf::Style::None);
 	window.setFramerateLimit(30);
 	window.setVerticalSyncEnabled(true);
-	window.clear(sf::Color(110, 20, 20));
 	window.setMouseCursorVisible(false);		
 	
 	if(start_at_mouse_pos) {	
@@ -206,33 +189,36 @@ int main(int argc, char **argv)
 			}
             if (event.type == sf::Event::KeyPressed) {
 				sf::Keyboard::Key key = event.key.code;
-				if(match_key(key, sf::Keyboard::Q) || match_key(key, sf::Keyboard::Escape)) {
-					std::cout << "quit!\n";
-					window.close();
-				}
-				else if(match_key(key, sf::Keyboard::Up) || match_key(key, sf::Keyboard::W)) {
-					if(focused_box > 0 && focused_box != 0) {
-						focused_box--;
+				switch(key) {
+					// quit?
+					case sf::Keyboard::Escape:
+					case sf::Keyboard::Q:
+						window.close();
+					break;
+					// move up?
+					case sf::Keyboard::Up:
+					case sf::Keyboard::W:
+						if(focused_box > 0) focused_box--;
 						toggle_box();
-					}
-				}
-				else if(match_key(key, sf::Keyboard::Down) || match_key(key, sf::Keyboard::S)) {
-					if(focused_box < boxes.size() - 1 && focused_box != boxes.size()) {
-						focused_box++;
+					break;
+					// move down?
+					case sf::Keyboard::Down:
+					case sf::Keyboard::S:
+						if(focused_box < boxes.size() - 1) focused_box++;
 						toggle_box();
-					}
-				}
-				else if(match_key(key, sf::Keyboard::Enter) || match_key(key, sf::Keyboard::D)) {
-					std::cout << "index: " << focused_box << " | command: " << boxes[focused_box]._command << '\n';
-					system(boxes[focused_box]._command.c_str());
-					std::cout << "quit!\n"; 
-					window.close();
+					break;
+					// run command?
+					case sf::Keyboard::Enter:
+					case sf::Keyboard::D:
+						system(boxes[focused_box]._command.c_str());
+						window.close();
+					break;
 				}
 	    	}
-		}	
+		}
         window.clear(background);
 		if(boxes.size() > 0) {
-			for(int i = 0; i < boxes.size(); i++) {
+			for(unsigned int i = 0; i < boxes.size(); i++) {
 				window.draw(boxes[i]._rect);
 				window.draw(boxes[i]._text);
 			}
