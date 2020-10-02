@@ -16,8 +16,15 @@ Default keybinds:
 - Q/ESC: quit
 
 
-you can add this to your i3 config if you want:
+you can add this to your i3 config if you want to open it with mod + b
 
 ```
 bindsym $mod+b exec "if ! ps -e | grep i3-app-launcher ; then exec i3-app-launcher ; fi"
 ```
+
+
+# changes:
+
+- 0.1
+
+cleaned few parts of code and fixed scrolling
